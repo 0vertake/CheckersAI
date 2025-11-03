@@ -1,5 +1,5 @@
 import pygame
-from board import Piece
+from core.piece import Piece
 
 
 class CheckersGUI:
@@ -28,9 +28,9 @@ class CheckersGUI:
         self.clock = pygame.time.Clock()
         self.board = board
         self.must_jump = must_jump
-        self.selected_piece = None  # (row, col) tuple
-        self.valid_moves = []  # List of (row, col) tuples
-        self.valid_jumps = []  # List of jump sequences (each is a list of (row, col) tuples)
+        self.selected_piece = None
+        self.valid_moves = []
+        self.valid_jumps = []
         self.current_player = "BLUE"
         
     def draw_board(self):
@@ -83,7 +83,6 @@ class CheckersGUI:
             pygame.draw.circle(s, self.VALID_MOVE_COLOR, (self.SQUARE_SIZE // 2, self.SQUARE_SIZE // 2), self.SQUARE_SIZE // 4)
             self.screen.blit(s, (col * self.SQUARE_SIZE, row * self.SQUARE_SIZE))
         for jump_sequence in self.valid_jumps:
-            # Highlight the final position of the jump
             last_pos = jump_sequence[-1]
             row, col = last_pos
             s = pygame.Surface((self.SQUARE_SIZE, self.SQUARE_SIZE), pygame.SRCALPHA)
@@ -91,13 +90,11 @@ class CheckersGUI:
             self.screen.blit(s, (col * self.SQUARE_SIZE, row * self.SQUARE_SIZE))
     
     def draw_status(self, message=""):
-        # Draw status bar below the board
         status_y = self.WINDOW_SIZE
         status_surface = pygame.Surface((self.WINDOW_SIZE, self.STATUS_HEIGHT))
         status_surface.fill((200, 200, 200))
         self.screen.blit(status_surface, (0, status_y))
         
-        # Draw turn indicator
         font = pygame.font.Font(None, 40)
         turn_text = f"{self.current_player}'s Turn"
         text_surface = font.render(turn_text, True, self.BLACK)
@@ -134,7 +131,6 @@ class CheckersGUI:
         piece = self.board.board[row][col]
         
         if not self.selected_piece:
-            # Select a piece
             if piece != Piece.EMPTY:
                 if self.current_player == "BLUE" and Piece.is_blue(piece):
                     self.selected_piece = clicked_square
@@ -147,10 +143,8 @@ class CheckersGUI:
                         self.valid_jumps = all_jumps.get(clicked_square, [])
             return None
         else:
-            # Try to make a move or reselect a piece
             if piece != Piece.EMPTY:
                 if self.current_player == "BLUE" and Piece.is_blue(piece):
-                    # Reselect a different piece
                     self.selected_piece = clicked_square
                     all_moves, all_jumps = self.board.get_all_moves(self.current_player, self.must_jump)
                     if self.must_jump and all_jumps:
@@ -162,12 +156,10 @@ class CheckersGUI:
                     return None
             
             move_made = False
-            # Check if it's a simple move
             if clicked_square in self.valid_moves:
                 self.board.play_move(self.selected_piece, clicked_square, True)
                 move_made = True
             else:
-                # Check if it's a jump
                 for jump_sequence in self.valid_jumps:
                     if clicked_square == jump_sequence[-1]:
                         self.board.play_jump(jump_sequence, True)

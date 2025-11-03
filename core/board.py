@@ -1,92 +1,5 @@
-def is_valid_position(row, col):
-    return 0 <= row < 8 and 0 <= col < 8
-
-
-class Piece:
-    EMPTY = 0
-    RED = 1
-    BLUE = 2
-    RED_KING = 3
-    BLUE_KING = 4
-    
-    @staticmethod
-    def is_red(piece):
-        return piece in (Piece.RED, Piece.RED_KING)
-    
-    @staticmethod
-    def is_blue(piece):
-        return piece in (Piece.BLUE, Piece.BLUE_KING)
-    
-    @staticmethod
-    def is_king(piece):
-        return piece in (Piece.RED_KING, Piece.BLUE_KING)
-    
-    @staticmethod
-    def make_king(piece):
-        if piece == Piece.RED:
-            return Piece.RED_KING
-        elif piece == Piece.BLUE:
-            return Piece.BLUE_KING
-        return piece
-    
-    @staticmethod
-    def get_color(piece):
-        if Piece.is_red(piece):
-            return "RED"
-        elif Piece.is_blue(piece):
-            return "BLUE"
-        return None
-
-
-def board_to_cache_key(board):
-    key = ""
-    for row in board:
-        for cell in row:
-            if cell == Piece.RED:
-                key += "r"
-            elif cell == Piece.BLUE:
-                key += "b"
-            elif cell == Piece.RED_KING:
-                key += "R"
-            elif cell == Piece.BLUE_KING:
-                key += "B"
-            else:
-                key += "0"
-    return key
-
-
-def cache_key_to_board(key):
-    board = [[Piece.EMPTY for _ in range(8)] for _ in range(8)]
-    for i in range(64):
-        row = i // 8
-        col = i % 8
-        if key[i] == "r":
-            board[row][col] = Piece.RED
-        elif key[i] == "b":
-            board[row][col] = Piece.BLUE
-        elif key[i] == "R":
-            board[row][col] = Piece.RED_KING
-        elif key[i] == "B":
-            board[row][col] = Piece.BLUE_KING
-    return board
-
-
-def load_cache():
-    cache = {}
-    with open("cache.txt", "r") as file:
-        for line in file:
-            key, evaluation, must_jump = line.split("|")
-            cache[key] = (float(evaluation), must_jump)
-    return cache
-
-
-def save_cache(cache, must_jump):
-    with open("cache.txt", "w") as file:
-        for key in cache:
-            file.write(f"{key}|{cache[key][0]}|{must_jump}\n")
-
-
-cache = load_cache()
+from core.piece import is_valid_position, Piece, board_to_cache_key
+from utils.cache import cache
 
 
 class Board:
@@ -227,7 +140,6 @@ class Board:
         is_central = (row, col) in self.CENTRAL_POSITIONS
         
         if piece == Piece.RED:
-            # Reward red pieces for advancing toward blue's side
             score += row * self.ADVANCEMENT_WEIGHT
             if is_central:
                 score += self.CENTRAL_CONTROL_BONUS
@@ -242,7 +154,6 @@ class Board:
                 score += self.EDGE_BONUS
                 
         elif piece == Piece.BLUE:
-            # Reward blue pieces for advancing toward red's side
             score += (7 - row) * self.ADVANCEMENT_WEIGHT
             if is_central:
                 score += self.CENTRAL_CONTROL_BONUS
@@ -265,16 +176,13 @@ class Board:
         return total_moves + total_jumps
 
     def evaluate(self, must_jump):
-        # Check cache first
         cache_key = board_to_cache_key(self.board)
         if cache_key in cache:
             return cache[cache_key][0]
         
-        # Material evaluation
         red_score = self.red_pieces + (self.red_kings * self.KING_VALUE)
         blue_score = self.blue_pieces + (self.blue_kings * self.KING_VALUE)
         
-        # Positional evaluation
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
@@ -285,13 +193,11 @@ class Board:
                     else:
                         blue_score += piece_score
         
-        # Mobility evaluation
         red_mobility = self._calculate_mobility("RED", must_jump)
         blue_mobility = self._calculate_mobility("BLUE", must_jump)
         red_score += red_mobility * self.MOBILITY_WEIGHT
         blue_score += blue_mobility * self.MOBILITY_WEIGHT
         
-        # Calculate final evaluation
         evaluation = red_score - blue_score
         self.add_cache(evaluation)
         
@@ -326,7 +232,6 @@ class Board:
             if print_move:
                 print(f"Piece at ({start_row}, {start_col}) jumps to ({end_row}, {end_col}).")
             
-            # Remove the jumped piece
             mid_row, mid_col = (start_row + end_row) // 2, (start_col + end_col) // 2
             mid_piece = self.board[mid_row][mid_col]
             if mid_piece == Piece.RED:
@@ -339,10 +244,8 @@ class Board:
                 self.blue_kings -= 1
             self.board[mid_row][mid_col] = Piece.EMPTY
             
-            # Move the piece
             self.board[start_row][start_col] = Piece.EMPTY
             
-            # Check for king promotion
             if piece == Piece.RED and end_row == 7:
                 piece = Piece.RED_KING
                 self.red_pieces -= 1

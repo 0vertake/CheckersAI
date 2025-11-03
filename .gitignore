@@ -87,4 +87,6 @@ Thumbs.db
 local_settings.py
 
 # Project-specific
+data/
 cache.txt
+*.cache

@@ -1,4 +1,4 @@
-from game import GameLogic
+from game.logic import GameLogic
 
 while True:
     choice = input("Do you want to play with mandatory takes? (y/n): ")
